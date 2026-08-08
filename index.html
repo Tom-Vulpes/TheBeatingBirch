@@ -546,6 +546,25 @@
   let audioCtx = null;
   let droneOn = false;
   let osc1, osc2, droneGain;
+  let driftNodes = []; // LFOs + their gain stages, torn down when the drone stops
+
+  function addDrift(targetParam, rateA, rateB, depthA, depthB){
+    // Two slow LFOs summed onto the target frequency. depthA + depthB is
+    // capped so the combined swing never exceeds ±10Hz — a 20Hz range total.
+    const ctx = audioCtx;
+    const lfoA = ctx.createOscillator();
+    lfoA.type = 'sine'; lfoA.frequency.value = rateA;
+    const gainA = ctx.createGain(); gainA.gain.value = depthA;
+    lfoA.connect(gainA); gainA.connect(targetParam);
+
+    const lfoB = ctx.createOscillator();
+    lfoB.type = 'sine'; lfoB.frequency.value = rateB;
+    const gainB = ctx.createGain(); gainB.gain.value = depthB;
+    lfoB.connect(gainB); gainB.connect(targetParam);
+
+    lfoA.start(); lfoB.start();
+    driftNodes.push(lfoA, lfoB);
+  }
   let clipBuffer = null;      // decoded AudioBuffer of the last recording, kept only in memory
   let clipSource = null;      // currently playing looped/stretched clip
   let clipGain = null;
@@ -577,6 +596,12 @@
     osc1.start();
     osc2.start();
 
+    // Slow, independent drift so the drone breathes rather than holding
+    // two fixed notes forever — bounded to a 20Hz range on each oscillator.
+    driftNodes = [];
+    addDrift(osc1.frequency, 0.031, 0.067, 6, 4);
+    addDrift(osc2.frequency, 0.043, 0.089, 5.5, 4.5);
+
     droneGain.gain.linearRampToValueAtTime(0.045, ctx.currentTime + 1.4);
   }
 
@@ -585,7 +610,12 @@
     const ctx = audioCtx;
     droneGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.8);
     const o1 = osc1, o2 = osc2;
-    setTimeout(() => { o1.stop(); o2.stop(); }, 900);
+    const drift = driftNodes;
+    driftNodes = [];
+    setTimeout(() => {
+      o1.stop(); o2.stop();
+      drift.forEach(n => { try{ n.stop(); } catch(e){} });
+    }, 900);
   }
 
   const toggle = document.getElementById('offeringToggle');
