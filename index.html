@@ -63,8 +63,19 @@
   .wordmark{
     font-family:'Fraunces', serif; font-weight:500; font-size:19px;
     letter-spacing:-0.01em;
+    cursor:pointer;
+    background:none; border:none; padding:0; color:var(--ink);
   }
   .wordmark span{color:var(--moss);}
+
+  .hero-copy, .tree-wrap{
+    transition:opacity .3s ease, transform .3s ease;
+  }
+  .hero-copy.is-hidden, .tree-wrap.is-hidden{
+    opacity:0; transform:translateY(-6px);
+    pointer-events:none;
+    position:absolute; visibility:hidden;
+  }
   .offering-toggle{
     display:flex; align-items:center; gap:9px;
     background:rgba(247,244,234,0.6);
@@ -240,36 +251,55 @@
     #tree.offering-active .limb{ animation:none; }
   }
 
-  /* PANEL */
-  .panel-dock{
+  /* BRANCH VIEW — takes over the tree's space when a branch is open */
+  .branch-view{
     position:relative;
-    width:min(920px,96vw);
-    margin:-10px auto 90px;
-    min-height:150px;
+    width:min(920px, 96vw);
+    margin:10px auto 90px;
   }
-  .panel{
-    position:absolute; inset:0;
+  .branch-page{
+    display:none;
+    opacity:0; transform:translateY(10px);
+    transition:opacity .35s ease, transform .35s ease;
+    padding:8px 4px 0;
+  }
+  .branch-page.active{
+    display:block;
+    opacity:1; transform:translateY(0);
+  }
+  .back-link{
+    background:none; border:none; cursor:pointer;
+    font-family:'Work Sans', sans-serif; font-size:13px; color:var(--ink-soft);
+    padding:0; margin-bottom:20px;
+    border-bottom:1px solid transparent;
+    transition:color .2s, border-color .2s;
+  }
+  .back-link:hover{ color:var(--moss-deep); border-color:var(--moss-deep); }
+  .branch-page .eyebrow{ color:var(--moss); }
+  .branch-page h2{
+    font-size:clamp(24px,3.6vw,34px);
+    margin-top:8px; line-height:1.15;
+  }
+  .branch-intro{
+    color:var(--ink-soft); font-size:15.5px; line-height:1.7;
+    max-width:62ch; margin-top:14px;
+  }
+  .branch-tiles{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:18px;
+    margin-top:36px;
+  }
+  @media(max-width:720px){ .branch-tiles{ grid-template-columns:1fr; } }
+  .tile{
     background:var(--paper);
     border:1px solid var(--bark-grey);
-    border-radius:14px;
-    padding:26px 30px;
-    opacity:0; pointer-events:none;
-    transform:translateY(8px);
-    transition:opacity .3s ease, transform .3s ease;
+    border-radius:12px;
+    padding:18px 20px;
   }
-  .panel.active{ opacity:1; pointer-events:auto; transform:translateY(0); }
-  .panel .eyebrow{ color:var(--moss); }
-  .panel h3{ font-size:22px; margin-top:6px; }
-  .panel p{ color:var(--ink-soft); font-size:14.5px; line-height:1.65; max-width:64ch; margin-top:10px; }
-  .panel .enter{
-    display:inline-flex; align-items:center; gap:6px;
-    margin-top:16px; font-size:13px; font-weight:500; color:var(--ink);
-    border-bottom:1px solid var(--catkin); padding-bottom:2px;
+  .tile h4{
+    font-family:'Fraunces', serif; font-weight:500; font-size:15.5px;
   }
-  .panel-empty{
-    display:flex; align-items:center; justify-content:center;
-    height:100%; color:var(--ink-soft); font-size:13px; font-style:italic;
-    opacity:0.7;
+  .tile p{
+    font-size:13px; color:var(--ink-soft); margin-top:8px; line-height:1.6;
   }
 
   /* ROOTS / PHILOSOPHY */
@@ -311,7 +341,7 @@
 <div class="grain"></div>
 
 <header>
-  <div class="wordmark">The Beating <span>Birch</span></div>
+  <button class="wordmark" id="homeLink">The Beating <span>Birch</span></button>
   <div class="offering-console">
     <button class="offering-toggle" id="offeringToggle" aria-pressed="false">
       <span class="dot"></span>
@@ -433,64 +463,104 @@
     </svg>
   </div>
 
-  <div class="panel-dock">
-    <div class="panel-empty" id="panelEmpty">Select a branch above to read what grows there</div>
+  <div class="branch-view" id="branchView" hidden>
 
-    <div class="panel" data-panel-content="grove">
+    <article class="branch-page" data-branch="grove">
+      <button class="back-link" data-back>← Back to the tree</button>
       <div class="eyebrow">The Grove</div>
-      <h3>The world beneath the branches</h3>
-      <p>The origin story of the Birch, its cosmology, and the everyday practice of sonic offering — why every action here, from waking to building, is first given as sound to the tree before it belongs to you.</p>
-      <a class="enter" href="#">Enter The Grove →</a>
-    </div>
+      <h2>The world beneath the branches</h2>
+      <p class="branch-intro">The origin story of the Birch, its cosmology, and the everyday practice of sonic offering — why every action here, from waking to building, is first given as sound to the tree before it belongs to you.</p>
+      <div class="branch-tiles">
+        <div class="tile"><h4>How the Birch began</h4><p>The founding myth of a civilisation grown inside one tree.</p></div>
+        <div class="tile"><h4>The practice of offering</h4><p>Why sound is given before anything is ever taken.</p></div>
+        <div class="tile"><h4>Cosmology &amp; seasons</h4><p>What the tree is believed to be, and by whom.</p></div>
+      </div>
+    </article>
 
-    <div class="panel" data-panel-content="songs">
+    <article class="branch-page" data-branch="songs">
+      <button class="back-link" data-back>← Back to the tree</button>
       <div class="eyebrow">The Songs</div>
-      <h3>Two albums, two seasons of the tree</h3>
-      <p>Listen to the recorded offerings that first gave this world its voice — full albums framed not as releases but as recordings of ritual, each track tied to a place or practice within the Birch.</p>
-      <a class="enter" href="#">Listen →</a>
-    </div>
+      <h2>Two albums, two seasons of the tree</h2>
+      <p class="branch-intro">Listen to the recorded offerings that first gave this world its voice — full albums framed not as releases but as recordings of ritual, each track tied to a place or practice within the Birch.</p>
+      <div class="branch-tiles">
+        <div class="tile"><h4>Album one</h4><p>The first recorded offering, track by track.</p></div>
+        <div class="tile"><h4>Album two</h4><p>Recordings from a later season of the tree.</p></div>
+        <div class="tile"><h4>Liner notes &amp; field recordings</h4><p>The stories behind how each piece was made.</p></div>
+      </div>
+    </article>
 
-    <div class="panel" data-panel-content="instruments">
+    <article class="branch-page" data-branch="instruments">
+      <button class="back-link" data-back>← Back to the tree</button>
       <div class="eyebrow">The Instruments</div>
-      <h3>Objects built to speak to the tree</h3>
-      <p>The physical instruments built for this world — what they're made from, who plays them, and the specific offering each one exists to make.</p>
-      <a class="enter" href="#">Meet the instruments →</a>
-    </div>
+      <h2>Objects built to speak to the tree</h2>
+      <p class="branch-intro">The physical instruments built for this world — what they're made from, who plays them, and the specific offering each one exists to make.</p>
+      <div class="branch-tiles">
+        <div class="tile"><h4>Materials &amp; making</h4><p>How each instrument is built, and from what.</p></div>
+        <div class="tile"><h4>Who plays what</h4><p>The roles and rituals tied to each instrument.</p></div>
+        <div class="tile"><h4>Hear them in the songs</h4><p>Which tracks each instrument appears in.</p></div>
+      </div>
+    </article>
 
-    <div class="panel" data-panel-content="folk">
+    <article class="branch-page" data-branch="folk">
+      <button class="back-link" data-back>← Back to the tree</button>
       <div class="eyebrow">The Folk</div>
-      <h3>Stories carried between branches</h3>
-      <p>Folklore, characters and myths from across the Birch — the growing book of the tree, told the way oral folklore travels: retold, embellished, occasionally contradictory.</p>
-      <a class="enter" href="#">Read the stories →</a>
-    </div>
+      <h2>Stories carried between branches</h2>
+      <p class="branch-intro">Folklore, characters and myths from across the Birch — the growing book of the tree, told the way oral folklore travels: retold, embellished, occasionally contradictory.</p>
+      <div class="branch-tiles">
+        <div class="tile"><h4>Characters of the canopy</h4><p>The recurring figures people tell stories about.</p></div>
+        <div class="tile"><h4>Retellings &amp; variants</h4><p>How the same story changes branch to branch.</p></div>
+        <div class="tile"><h4>Submit your own telling</h4><p>Add a story to the growing book of the tree.</p></div>
+      </div>
+    </article>
 
-    <div class="panel" data-panel-content="artworks">
+    <article class="branch-page" data-branch="artworks">
+      <button class="back-link" data-back>← Back to the tree</button>
       <div class="eyebrow">Artworks</div>
-      <h3>Visions of the world, drawn and painted</h3>
-      <p>The visual record of the Birch — illustration, concept art and design work that maps what the tree and its civilisation actually look like, from canopy settlements to the instruments themselves.</p>
-      <a class="enter" href="#">View the gallery →</a>
-    </div>
+      <h2>Visions of the world, drawn and painted</h2>
+      <p class="branch-intro">The visual record of the Birch — illustration, concept art and design work that maps what the tree and its civilisation actually look like, from canopy settlements to the instruments themselves.</p>
+      <div class="branch-tiles">
+        <div class="tile"><h4>Concept art</h4><p>Early visions of the world as it took shape.</p></div>
+        <div class="tile"><h4>Canopy settlements</h4><p>How and where people actually live in the branches.</p></div>
+        <div class="tile"><h4>Instrument studies</h4><p>Close studies of each instrument's design.</p></div>
+      </div>
+    </article>
 
-    <div class="panel" data-panel-content="play">
+    <article class="branch-page" data-branch="play">
+      <button class="back-link" data-back>← Back to the tree</button>
       <div class="eyebrow">Play</div>
-      <h3>Games and interactive pieces</h3>
-      <p>Small playable experiences set inside the world — ways to practice the offering yourself rather than just read about it.</p>
-      <a class="enter" href="#">Play →</a>
-    </div>
+      <h2>Games and interactive pieces</h2>
+      <p class="branch-intro">Small playable experiences set inside the world — ways to practice the offering yourself rather than just read about it.</p>
+      <div class="branch-tiles">
+        <div class="tile"><h4>Practice an offering</h4><p>A small interactive piece built around giving sound.</p></div>
+        <div class="tile"><h4>Wander the branches</h4><p>An exploratory piece set inside the canopy.</p></div>
+        <div class="tile"><h4>For younger visitors</h4><p>Gentler entry points into the world.</p></div>
+      </div>
+    </article>
 
-    <div class="panel" data-panel-content="join">
+    <article class="branch-page" data-branch="join">
+      <button class="back-link" data-back>← Back to the tree</button>
       <div class="eyebrow">Join the Offering</div>
-      <h3>What we could build together</h3>
-      <p>Ways to take part — contribute folklore, join the mailing list, or add your own sonic offering to a growing, shared recording of the community.</p>
-      <a class="enter" href="#">Join →</a>
-    </div>
+      <h2>What we could build together</h2>
+      <p class="branch-intro">Ways to take part — contribute folklore, join the mailing list, or add your own sonic offering to a growing, shared recording of the community.</p>
+      <div class="branch-tiles">
+        <div class="tile"><h4>Contribute folklore</h4><p>Send in a story to be added to The Folk.</p></div>
+        <div class="tile"><h4>Join the mailing list</h4><p>Hear about new songs, stories and releases.</p></div>
+        <div class="tile"><h4>Add your voice to the drone</h4><p>Record and stretch your own offering, right here.</p></div>
+      </div>
+    </article>
 
-    <div class="panel" data-panel-content="shop">
+    <article class="branch-page" data-branch="shop">
+      <button class="back-link" data-back>← Back to the tree</button>
       <div class="eyebrow">Shop</div>
-      <h3>What feeds the tree back</h3>
-      <p>Prints, pressings and merchandise — framed as support for the Birch rather than a storefront, sitting quietly among the roots rather than up in the branches.</p>
-      <a class="enter" href="#">Visit the shop →</a>
-    </div>
+      <h2>What feeds the tree back</h2>
+      <p class="branch-intro">Prints, pressings and merchandise — framed as support for the Birch rather than a storefront, sitting quietly among the roots rather than up in the branches.</p>
+      <div class="branch-tiles">
+        <div class="tile"><h4>Prints</h4><p>Artwork from the world, printed for your walls.</p></div>
+        <div class="tile"><h4>Pressings</h4><p>Both albums, on vinyl.</p></div>
+        <div class="tile"><h4>Instrument-inspired objects</h4><p>Small physical pieces drawn from the instruments.</p></div>
+      </div>
+    </article>
+
   </div>
 </section>
 
@@ -525,20 +595,55 @@
 
 <script>
   const nodes = document.querySelectorAll('.node-group');
-  const panels = document.querySelectorAll('.panel');
-  const panelEmpty = document.getElementById('panelEmpty');
+  const treeWrap = document.querySelector('.tree-wrap');
   const treeEl = document.getElementById('tree');
+  const heroCopy = document.querySelector('.hero-copy');
+  const branchView = document.getElementById('branchView');
+  const branchPages = document.querySelectorAll('.branch-page');
+  const homeLink = document.getElementById('homeLink');
+  const BRANCH_KEYS = Array.from(branchPages).map(p => p.getAttribute('data-branch'));
+
+  function openBranch(key, pushHash = true){
+    if(!BRANCH_KEYS.includes(key)) return;
+    branchPages.forEach(p => p.classList.toggle('active', p.getAttribute('data-branch') === key));
+    heroCopy.classList.add('is-hidden');
+    treeWrap.classList.add('is-hidden');
+    branchView.hidden = false;
+    requestAnimationFrame(() => {
+      branchPages.forEach(p => { if(p.getAttribute('data-branch') === key) p.classList.add('active'); });
+    });
+    if(pushHash) history.pushState({ branch:key }, '', '#' + key);
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+
+  function closeBranch(pushHash = true){
+    branchPages.forEach(p => p.classList.remove('active'));
+    heroCopy.classList.remove('is-hidden');
+    treeWrap.classList.remove('is-hidden');
+    setTimeout(() => { branchView.hidden = true; }, 200);
+    if(pushHash) history.pushState({}, '', window.location.pathname + window.location.search);
+  }
 
   nodes.forEach(node => {
-    const open = () => {
-      const key = node.getAttribute('data-panel');
-      nodes.forEach(n => n.classList.toggle('active', n === node));
-      panels.forEach(p => p.classList.toggle('active', p.getAttribute('data-panel-content') === key));
-      panelEmpty.style.display = 'none';
-    };
-    node.addEventListener('click', open);
-    node.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); } });
+    const key = node.getAttribute('data-panel');
+    const go = () => openBranch(key);
+    node.addEventListener('click', go);
+    node.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); go(); } });
   });
+
+  document.querySelectorAll('[data-back]').forEach(btn => btn.addEventListener('click', () => closeBranch()));
+  homeLink.addEventListener('click', () => closeBranch());
+
+  window.addEventListener('popstate', () => {
+    const key = location.hash.replace('#', '');
+    if(BRANCH_KEYS.includes(key)) openBranch(key, false); else closeBranch(false);
+  });
+
+  // Deep link support — open directly to a branch if the page loads with a hash
+  (function initFromHash(){
+    const key = location.hash.replace('#', '');
+    if(BRANCH_KEYS.includes(key)) openBranch(key, false);
+  })();
 
   // --- Shared audio graph -----------------------------------------------
   // One AudioContext powers both the ambient drone and the recorded clip,
