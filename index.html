@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Beating Birch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,400&family=Work+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bark-pale:#EDE8D8;
+    --bark-pale-2:#E4DDC8;
+    --bark-grey:#8B8478;
+    --ink:#2B2A24;
+    --ink-soft:#5B5749;
+    --moss:#48624C;
+    --moss-deep:#2F4432;
+    --catkin:#B6912A;
+    --catkin-glow:#E3C669;
+    --dusk:#3A4A5C;
+    --paper:#F7F4EA;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bark-pale);
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+    font-weight:400;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,.display{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .eyebrow{
+    font-size:12px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:500;
+  }
+  a{color:inherit;}
+
+  /* subtle bark texture */
+  .grain{
+    position:fixed; inset:0; pointer-events:none; z-index:1; opacity:0.5;
+    background-image:
+      repeating-linear-gradient(100deg, rgba(139,132,120,0.05) 0px, rgba(139,132,120,0.05) 1px, transparent 1px, transparent 6px),
+      repeating-linear-gradient(95deg, rgba(43,42,36,0.03) 0px, rgba(43,42,36,0.03) 1px, transparent 1px, transparent 14px);
+  }
+
+  header{
+    position:fixed; top:0; left:0; right:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px clamp(20px,5vw,56px);
+    mix-blend-mode:normal;
+  }
+  .wordmark{
+    font-family:'Fraunces', serif; font-weight:500; font-size:19px;
+    letter-spacing:-0.01em;
+  }
+  .wordmark span{color:var(--moss);}
+  .offering-toggle{
+    display:flex; align-items:center; gap:9px;
+    background:rgba(247,244,234,0.6);
+    border:1px solid var(--bark-grey);
+    border-radius:999px;
+    padding:8px 16px 8px 12px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    cursor:pointer;
+    backdrop-filter: blur(4px);
+    transition:border-color .2s, color .2s;
+  }
+  .offering-console{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end;
+  }
+  .record-btn{
+    display:flex; align-items:center; gap:9px;
+    background:rgba(247,244,234,0.6);
+    border:1px solid var(--bark-grey);
+    border-radius:999px;
+    padding:8px 16px 8px 12px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    cursor:pointer;
+    backdrop-filter: blur(4px);
+    transition:border-color .2s, color .2s;
+  }
+  .record-btn:hover{ border-color:#B6523A; color:var(--ink); }
+  .record-btn .rec-dot{
+    width:8px; height:8px; border-radius:50%;
+    background:var(--bark-grey);
+    transition:background .3s;
+  }
+  .record-btn.recording{ border-color:#B6523A; color:var(--ink); }
+  .record-btn.recording .rec-dot{
+    background:#C0503A;
+    animation:recPulse 1s ease-in-out infinite;
+  }
+  .record-btn.has-clip .rec-dot{ background:var(--moss); }
+  @keyframes recPulse{
+    0%,100%{ opacity:1; }
+    50%{ opacity:0.35; }
+  }
+  .stretch-control{
+    display:flex; align-items:center; gap:8px;
+    font-size:11.5px; color:var(--ink-soft);
+    background:rgba(247,244,234,0.6);
+    border:1px solid var(--bark-grey);
+    border-radius:999px;
+    padding:7px 14px;
+    backdrop-filter: blur(4px);
+  }
+  .stretch-control input[type="range"]{
+    width:80px; accent-color: var(--moss);
+  }
+  .offering-toggle .dot{
+    width:8px; height:8px; border-radius:50%;
+    background:var(--bark-grey);
+    transition:background .3s, box-shadow .3s;
+  }
+  .offering-toggle.on .dot{
+    background:var(--catkin);
+    box-shadow:0 0 0 0 rgba(182,145,42,0.6);
+    animation:hum 1.8s ease-in-out infinite;
+  }
+  @keyframes hum{
+    0%,100%{box-shadow:0 0 0 0 rgba(182,145,42,0.45);}
+    50%{box-shadow:0 0 0 6px rgba(182,145,42,0);}
+  }
+
+  /* HERO / TREE */
+  .hero{
+    position:relative;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    padding-top:120px;
+  }
+  .hero-copy{
+    text-align:center;
+    max-width:560px;
+    margin:0 auto 8px;
+    padding:0 20px;
+  }
+  .hero-copy h1{
+    font-size:clamp(30px, 5vw, 46px);
+    line-height:1.08;
+  }
+  .hero-copy p{
+    color:var(--ink-soft);
+    font-size:15.5px;
+    line-height:1.6;
+    margin-top:14px;
+  }
+  .hint{
+    font-size:12px; color:var(--ink-soft); letter-spacing:0.04em;
+    margin-top:18px; opacity:0.8;
+  }
+
+  .tree-wrap{
+    position:relative;
+    width:min(920px, 96vw);
+    margin-top:10px;
+  }
+  svg#tree{ width:100%; height:auto; display:block; overflow:visible; }
+
+  .trunk{ fill:none; stroke:var(--ink); stroke-width:2; }
+  .trunk-fill{ fill:var(--bark-grey); opacity:0.14; }
+  .branch{
+    fill:none; stroke:var(--ink); stroke-width:1.6; stroke-linecap:round;
+    transition:stroke .25s;
+  }
+  .root{
+    fill:none; stroke:var(--bark-grey); stroke-width:1.2; stroke-linecap:round; opacity:0.55;
+  }
+
+  .branch{
+    animation: branchPulse 5.2s ease-in-out infinite;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes branchPulse{
+    0%, 100% { stroke-width:1.6; opacity:0.85; }
+    45% { stroke-width:1.6; opacity:0.85; }
+    62% { stroke-width:2.6; opacity:1; }
+    80% { stroke-width:1.6; opacity:0.85; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .branch{ animation:none; }
+  }
+
+  .node-group{ cursor:pointer; }
+  .node-halo{
+    fill:var(--catkin-glow); opacity:0; transition:opacity .3s;
+  }
+  .node-group:hover .node-halo, .node-group.active .node-halo{ opacity:0.35; }
+  .node-dot{
+    fill:var(--paper); stroke:var(--ink); stroke-width:1.4;
+    transition:fill .25s, stroke .25s;
+  }
+  .node-group:hover .node-dot, .node-group.active .node-dot{
+    fill:var(--catkin); stroke:var(--catkin);
+  }
+  .node-label{
+    font-family:'Work Sans', sans-serif; font-size:12.5px; font-weight:500;
+    fill:var(--ink); letter-spacing:0.01em;
+    transition:fill .25s;
+  }
+  .node-group:hover .node-label, .node-group.active .node-label{ fill:var(--moss-deep); }
+  .node-sub{
+    font-size:10.5px; fill:var(--ink-soft);
+  }
+  .node-root .node-halo{ fill:var(--bark-grey); }
+  .node-root:hover .node-dot, .node-root.active .node-dot{
+    fill:var(--bark-grey); stroke:var(--bark-grey);
+  }
+  .node-root:hover .node-label, .node-root.active .node-label{ fill:var(--ink); }
+
+  .limb{
+    transform-origin: var(--ox) var(--oy);
+    transform: rotate(0deg);
+  }
+  #tree.offering-active .limb{
+    animation: sway 4.4s ease-in-out infinite;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes sway{
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(calc(var(--dir, 1) * 1.6deg)); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    #tree.offering-active .limb{ animation:none; }
+  }
+
+  /* PANEL */
+  .panel-dock{
+    position:relative;
+    width:min(920px,96vw);
+    margin:-10px auto 90px;
+    min-height:150px;
+  }
+  .panel{
+    position:absolute; inset:0;
+    background:var(--paper);
+    border:1px solid var(--bark-grey);
+    border-radius:14px;
+    padding:26px 30px;
+    opacity:0; pointer-events:none;
+    transform:translateY(8px);
+    transition:opacity .3s ease, transform .3s ease;
+  }
+  .panel.active{ opacity:1; pointer-events:auto; transform:translateY(0); }
+  .panel .eyebrow{ color:var(--moss); }
+  .panel h3{ font-size:22px; margin-top:6px; }
+  .panel p{ color:var(--ink-soft); font-size:14.5px; line-height:1.65; max-width:64ch; margin-top:10px; }
+  .panel .enter{
+    display:inline-flex; align-items:center; gap:6px;
+    margin-top:16px; font-size:13px; font-weight:500; color:var(--ink);
+    border-bottom:1px solid var(--catkin); padding-bottom:2px;
+  }
+  .panel-empty{
+    display:flex; align-items:center; justify-content:center;
+    height:100%; color:var(--ink-soft); font-size:13px; font-style:italic;
+    opacity:0.7;
+  }
+
+  /* ROOTS / PHILOSOPHY */
+  .roots-section{
+    background:var(--moss-deep);
+    color:var(--paper);
+    padding:100px 20px 110px;
+  }
+  .roots-inner{
+    max-width:680px; margin:0 auto; text-align:center;
+  }
+  .roots-inner .eyebrow{ color:#B9CBB6; }
+  .roots-inner h2{
+    font-size:clamp(24px,3.4vw,32px);
+    margin-top:10px; line-height:1.25;
+  }
+  .roots-inner p{
+    color:#D9E2D3; font-size:15px; line-height:1.75; margin-top:18px;
+    max-width:58ch; margin-left:auto; margin-right:auto;
+  }
+  .roots-list{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:24px;
+    margin-top:52px; text-align:left;
+  }
+  @media(max-width:720px){ .roots-list{grid-template-columns:1fr;} }
+  .root-item{ border-top:1px solid rgba(217,226,211,0.25); padding-top:14px; }
+  .root-item .num{ font-size:11px; color:var(--catkin-glow); letter-spacing:0.1em; }
+  .root-item h4{ font-family:'Fraunces',serif; font-weight:500; font-size:16px; margin-top:8px; }
+  .root-item p{ font-size:13px; color:#C9D4C4; margin-top:6px; line-height:1.6; max-width:none; }
+
+  footer{
+    text-align:center; padding:40px 20px 50px; font-size:12px; color:var(--ink-soft);
+    background:var(--bark-pale-2);
+  }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+
+<header>
+  <div class="wordmark">The Beating <span>Birch</span></div>
+  <div class="offering-console">
+    <button class="offering-toggle" id="offeringToggle" aria-pressed="false">
+      <span class="dot"></span>
+      <span id="offeringLabel">Leave a sonic offering</span>
+    </button>
+    <button class="record-btn" id="recordBtn" aria-pressed="false">
+      <span class="rec-dot"></span>
+      <span id="recordLabel">Record an offering</span>
+    </button>
+    <div class="stretch-control" id="stretchControl" hidden>
+      <label for="stretchRange">Stretch</label>
+      <input type="range" id="stretchRange" min="0.06" max="0.9" step="0.01" value="0.18">
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-copy">
+    <div class="eyebrow">A world grown in branches</div>
+    <h1>Every act here is a sound given to the tree</h1>
+    <p>Explore The Beating Birch by walking its branches — an entire civilisation living inside one enormous, listening tree, told through music, instruments, folklore, art and play.</p>
+    <p class="hint">Touch a branch to begin</p>
+  </div>
+
+  <div class="tree-wrap">
+    <svg id="tree" viewBox="0 0 920 660" xmlns="http://www.w3.org/2000/svg">
+      <g>
+        <!-- trunk -->
+        <path class="trunk-fill" d="M440,640 C430,520 428,420 448,300 C455,260 465,230 470,210 L470,640 Z"/>
+        <path class="trunk" d="M448,640 C438,520 436,420 456,300 C463,258 470,225 476,205"/>
+        <path class="trunk" d="M472,640 C480,520 484,420 470,300 C466,260 461,230 476,205"/>
+
+        <!-- roots -->
+        <path class="root" d="M448,635 C400,650 340,652 300,640"/>
+        <path class="root" d="M452,638 C420,660 380,668 350,662"/>
+        <path class="root" d="M470,638 C500,656 545,660 580,650"/>
+        <path class="root" d="M475,636 C510,650 555,650 600,636"/>
+        <path class="root" d="M460,640 C455,656 452,668 452,676"/>
+
+        <!-- branches: each limb groups its branch path with its node so both sway together -->
+        <g class="limb" style="--ox:462px; --oy:470px; --dir:-1; --d:0s;">
+          <path class="branch" style="--d:0s" d="M462,470 C400,450 320,440 250,420"/>
+          <g class="node-group" data-panel="grove" tabindex="0" role="button" aria-label="The Grove">
+            <circle class="node-halo" cx="250" cy="420" r="26"/>
+            <circle class="node-dot" cx="250" cy="420" r="7"/>
+            <text class="node-label" x="250" y="404" text-anchor="middle">The Grove</text>
+            <text class="node-sub" x="250" y="440" text-anchor="middle">world &amp; lore</text>
+          </g>
+        </g>
+
+        <g class="limb" style="--ox:458px; --oy:360px; --dir:-1; --d:0.7s;">
+          <path class="branch" style="--d:0.7s" d="M458,360 C380,330 300,300 240,260"/>
+          <g class="node-group" data-panel="songs" tabindex="0" role="button" aria-label="The Songs">
+            <circle class="node-halo" cx="240" cy="260" r="26"/>
+            <circle class="node-dot" cx="240" cy="260" r="7"/>
+            <text class="node-label" x="240" y="244" text-anchor="middle">The Songs</text>
+            <text class="node-sub" x="240" y="280" text-anchor="middle">two albums</text>
+          </g>
+        </g>
+
+        <g class="limb" style="--ox:472px; --oy:350px; --dir:1; --d:1.4s;">
+          <path class="branch" style="--d:1.4s" d="M472,350 C540,320 610,290 670,255"/>
+          <g class="node-group" data-panel="instruments" tabindex="0" role="button" aria-label="The Instruments">
+            <circle class="node-halo" cx="670" cy="255" r="26"/>
+            <circle class="node-dot" cx="670" cy="255" r="7"/>
+            <text class="node-label" x="670" y="239" text-anchor="middle">The Instruments</text>
+            <text class="node-sub" x="670" y="275" text-anchor="middle">built objects</text>
+          </g>
+        </g>
+
+        <g class="limb" style="--ox:468px; --oy:460px; --dir:1; --d:2.1s;">
+          <path class="branch" style="--d:2.1s" d="M468,460 C530,440 600,430 660,415"/>
+          <g class="node-group" data-panel="folk" tabindex="0" role="button" aria-label="The Folk">
+            <circle class="node-halo" cx="660" cy="415" r="26"/>
+            <circle class="node-dot" cx="660" cy="415" r="7"/>
+            <text class="node-label" x="660" y="399" text-anchor="middle">The Folk</text>
+            <text class="node-sub" x="660" y="435" text-anchor="middle">stories</text>
+          </g>
+        </g>
+
+        <g class="limb" style="--ox:467px; --oy:300px; --dir:1; --d:2.8s;">
+          <path class="branch" style="--d:2.8s" d="M467,300 C468,220 470,140 470,85"/>
+          <g class="node-group" data-panel="artworks" tabindex="0" role="button" aria-label="Artworks">
+            <circle class="node-halo" cx="470" cy="85" r="26"/>
+            <circle class="node-dot" cx="470" cy="85" r="7"/>
+            <text class="node-label" x="470" y="69" text-anchor="middle">Artworks</text>
+            <text class="node-sub" x="470" y="105" text-anchor="middle">gallery</text>
+          </g>
+        </g>
+
+        <g class="limb" style="--ox:474px; --oy:235px; --dir:1; --d:3.5s;">
+          <path class="branch" style="--d:3.5s" d="M474,235 C520,190 570,150 610,110"/>
+          <g class="node-group" data-panel="play" tabindex="0" role="button" aria-label="Play">
+            <circle class="node-halo" cx="610" cy="110" r="26"/>
+            <circle class="node-dot" cx="610" cy="110" r="7"/>
+            <text class="node-label" x="610" y="94" text-anchor="middle">Play</text>
+            <text class="node-sub" x="610" y="130" text-anchor="middle">games</text>
+          </g>
+        </g>
+
+        <g class="limb" style="--ox:462px; --oy:220px; --dir:-1; --d:4.2s;">
+          <path class="branch" style="--d:4.2s" d="M462,220 C420,175 375,135 330,100"/>
+          <g class="node-group" data-panel="join" tabindex="0" role="button" aria-label="Join the Offering">
+            <circle class="node-halo" cx="330" cy="100" r="26"/>
+            <circle class="node-dot" cx="330" cy="100" r="7"/>
+            <text class="node-label" x="330" y="84" text-anchor="middle">Join the Offering</text>
+            <text class="node-sub" x="330" y="120" text-anchor="middle">community</text>
+          </g>
+        </g>
+
+        <!-- node: Shop, resting among the roots — does not sway -->
+        <g class="node-group node-root" data-panel="shop" tabindex="0" role="button" aria-label="Shop">
+          <circle class="node-halo" cx="600" cy="644" r="24"/>
+          <circle class="node-dot" cx="600" cy="644" r="6.5"/>
+          <text class="node-label" x="600" y="629" text-anchor="middle">Shop</text>
+          <text class="node-sub" x="600" y="663" text-anchor="middle">what feeds the tree</text>
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  <div class="panel-dock">
+    <div class="panel-empty" id="panelEmpty">Select a branch above to read what grows there</div>
+
+    <div class="panel" data-panel-content="grove">
+      <div class="eyebrow">The Grove</div>
+      <h3>The world beneath the branches</h3>
+      <p>The origin story of the Birch, its cosmology, and the everyday practice of sonic offering — why every action here, from waking to building, is first given as sound to the tree before it belongs to you.</p>
+      <a class="enter" href="#">Enter The Grove →</a>
+    </div>
+
+    <div class="panel" data-panel-content="songs">
+      <div class="eyebrow">The Songs</div>
+      <h3>Two albums, two seasons of the tree</h3>
+      <p>Listen to the recorded offerings that first gave this world its voice — full albums framed not as releases but as recordings of ritual, each track tied to a place or practice within the Birch.</p>
+      <a class="enter" href="#">Listen →</a>
+    </div>
+
+    <div class="panel" data-panel-content="instruments">
+      <div class="eyebrow">The Instruments</div>
+      <h3>Objects built to speak to the tree</h3>
+      <p>The physical instruments built for this world — what they're made from, who plays them, and the specific offering each one exists to make.</p>
+      <a class="enter" href="#">Meet the instruments →</a>
+    </div>
+
+    <div class="panel" data-panel-content="folk">
+      <div class="eyebrow">The Folk</div>
+      <h3>Stories carried between branches</h3>
+      <p>Folklore, characters and myths from across the Birch — the growing book of the tree, told the way oral folklore travels: retold, embellished, occasionally contradictory.</p>
+      <a class="enter" href="#">Read the stories →</a>
+    </div>
+
+    <div class="panel" data-panel-content="artworks">
+      <div class="eyebrow">Artworks</div>
+      <h3>Visions of the world, drawn and painted</h3>
+      <p>The visual record of the Birch — illustration, concept art and design work that maps what the tree and its civilisation actually look like, from canopy settlements to the instruments themselves.</p>
+      <a class="enter" href="#">View the gallery →</a>
+    </div>
+
+    <div class="panel" data-panel-content="play">
+      <div class="eyebrow">Play</div>
+      <h3>Games and interactive pieces</h3>
+      <p>Small playable experiences set inside the world — ways to practice the offering yourself rather than just read about it.</p>
+      <a class="enter" href="#">Play →</a>
+    </div>
+
+    <div class="panel" data-panel-content="join">
+      <div class="eyebrow">Join the Offering</div>
+      <h3>What we could build together</h3>
+      <p>Ways to take part — contribute folklore, join the mailing list, or add your own sonic offering to a growing, shared recording of the community.</p>
+      <a class="enter" href="#">Join →</a>
+    </div>
+
+    <div class="panel" data-panel-content="shop">
+      <div class="eyebrow">Shop</div>
+      <h3>What feeds the tree back</h3>
+      <p>Prints, pressings and merchandise — framed as support for the Birch rather than a storefront, sitting quietly among the roots rather than up in the branches.</p>
+      <a class="enter" href="#">Visit the shop →</a>
+    </div>
+  </div>
+</section>
+
+<section class="roots-section">
+  <div class="roots-inner">
+    <div class="eyebrow">What holds the tree up</div>
+    <h2>A hopeful, speculative answer to what technology and nature could become together</h2>
+    <p>The Beating Birch isn't a warning story. It's a proposal — a civilisation that grew in cooperation with a living system rather than in spite of one, told through the specific discipline of giving something back before you take.</p>
+    <div class="roots-list">
+      <div class="root-item">
+        <div class="num">01</div>
+        <h4>Reciprocity as infrastructure</h4>
+        <p>Sonic offering isn't decoration in this world — it's how permission, gratitude and attention actually get exchanged with the tree.</p>
+      </div>
+      <div class="root-item">
+        <div class="num">02</div>
+        <h4>Technology as tending</h4>
+        <p>Tools and instruments exist to listen and respond to the Birch, not to extract from it — built objects as acts of care.</p>
+      </div>
+      <div class="root-item">
+        <div class="num">03</div>
+        <h4>A future worth wanting</h4>
+        <p>Hope here isn't naive optimism — it's a specific, workable picture of coexistence you can walk through, branch by branch.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  The Beating Birch — a worldbuild in music, story and instrument. Prototype homepage.
+</footer>
+
+<script>
+  const nodes = document.querySelectorAll('.node-group');
+  const panels = document.querySelectorAll('.panel');
+  const panelEmpty = document.getElementById('panelEmpty');
+  const treeEl = document.getElementById('tree');
+
+  nodes.forEach(node => {
+    const open = () => {
+      const key = node.getAttribute('data-panel');
+      nodes.forEach(n => n.classList.toggle('active', n === node));
+      panels.forEach(p => p.classList.toggle('active', p.getAttribute('data-panel-content') === key));
+      panelEmpty.style.display = 'none';
+    };
+    node.addEventListener('click', open);
+    node.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); } });
+  });
+
+  // --- Shared audio graph -----------------------------------------------
+  // One AudioContext powers both the ambient drone and the recorded clip,
+  // so a recorded offering can be mixed straight into the drone.
+  let audioCtx = null;
+  let droneOn = false;
+  let osc1, osc2, droneGain;
+  let clipBuffer = null;      // decoded AudioBuffer of the last recording, kept only in memory
+  let clipSource = null;      // currently playing looped/stretched clip
+  let clipGain = null;
+
+  function ensureAudioCtx(){
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+
+  function setSwaying(on){
+    treeEl.classList.toggle('offering-active', on);
+  }
+
+  function startDrone(){
+    const ctx = ensureAudioCtx();
+    droneGain = ctx.createGain();
+    droneGain.gain.value = 0;
+    droneGain.connect(ctx.destination);
+
+    osc1 = ctx.createOscillator();
+    osc1.type = 'sine';
+    osc1.frequency.value = 110;
+    osc2 = ctx.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.value = 164.81;
+
+    osc1.connect(droneGain);
+    osc2.connect(droneGain);
+    osc1.start();
+    osc2.start();
+
+    droneGain.gain.linearRampToValueAtTime(0.045, ctx.currentTime + 1.4);
+  }
+
+  function stopDrone(){
+    if(!audioCtx || !droneGain) return;
+    const ctx = audioCtx;
+    droneGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.8);
+    const o1 = osc1, o2 = osc2;
+    setTimeout(() => { o1.stop(); o2.stop(); }, 900);
+  }
+
+  const toggle = document.getElementById('offeringToggle');
+  const label = document.getElementById('offeringLabel');
+
+  function setDrone(on){
+    droneOn = on;
+    toggle.classList.toggle('on', droneOn);
+    toggle.setAttribute('aria-pressed', droneOn);
+    label.textContent = droneOn ? 'Offering given' : 'Leave a sonic offering';
+    setSwaying(droneOn);
+    if(droneOn){ startDrone(); } else { stopDrone(); stopClip(); }
+  }
+
+  toggle.addEventListener('click', () => setDrone(!droneOn));
+
+  // --- Recording ----------------------------------------------------------
+  // Captures a short clip with MediaRecorder, decodes it to an AudioBuffer,
+  // and keeps that buffer only in memory for this session (no storage APIs).
+  const recordBtn = document.getElementById('recordBtn');
+  const recordLabel = document.getElementById('recordLabel');
+  const stretchControl = document.getElementById('stretchControl');
+  const stretchRange = document.getElementById('stretchRange');
+
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let recording = false;
+  let recordTimer = null;
+  let recordSeconds = 0;
+  const MAX_RECORD_SECONDS = 6;
+
+  async function startRecording(){
+    let stream;
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    } catch(err){
+      recordLabel.textContent = 'Microphone unavailable';
+      setTimeout(() => { recordLabel.textContent = 'Record an offering'; }, 2200);
+      return;
+    }
+
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => { if(e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+      const arrayBuffer = await blob.arrayBuffer();
+      try{
+        const ctx = ensureAudioCtx();
+        clipBuffer = await ctx.decodeAudioData(arrayBuffer);
+        recordBtn.classList.add('has-clip');
+        stretchControl.hidden = false;
+        recordLabel.textContent = 'Re-record your offering';
+        if(!droneOn) setDrone(true);
+        playStretchedClip();
+      } catch(err){
+        recordLabel.textContent = 'Could not use that clip';
+        setTimeout(() => { recordLabel.textContent = 'Record an offering'; }, 2200);
+      }
+    };
+
+    mediaRecorder.start();
+    recording = true;
+    recordSeconds = 0;
+    recordBtn.classList.add('recording');
+    recordLabel.textContent = 'Recording… 0s';
+    recordTimer = setInterval(() => {
+      recordSeconds += 1;
+      recordLabel.textContent = `Recording… ${recordSeconds}s`;
+      if(recordSeconds >= MAX_RECORD_SECONDS) stopRecording();
+    }, 1000);
+  }
+
+  function stopRecording(){
+    if(!recording) return;
+    recording = false;
+    clearInterval(recordTimer);
+    recordBtn.classList.remove('recording');
+    if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  }
+
+  recordBtn.addEventListener('click', () => {
+    if(recording){ stopRecording(); } else { startRecording(); }
+  });
+
+  // --- Stretching the clip into the drone ---------------------------------
+  // Playing the buffer well below normal speed both stretches its length
+  // and lowers its pitch, turning a short clip into a slow drone layer.
+  function stopClip(){
+    if(clipSource){
+      try{ clipGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.6); } catch(e){}
+      const src = clipSource;
+      setTimeout(() => { try{ src.stop(); } catch(e){} }, 700);
+      clipSource = null;
+    }
+  }
+
+  function playStretchedClip(){
+    if(!clipBuffer) return;
+    const ctx = ensureAudioCtx();
+    stopClip();
+
+    clipSource = ctx.createBufferSource();
+    clipSource.buffer = clipBuffer;
+    clipSource.loop = true;
+    clipSource.playbackRate.value = parseFloat(stretchRange.value);
+
+    clipGain = ctx.createGain();
+    clipGain.gain.value = 0;
+    clipSource.connect(clipGain);
+    clipGain.connect(ctx.destination);
+    clipSource.start();
+    clipGain.gain.linearRampToValueAtTime(0.07, ctx.currentTime + 1.6);
+  }
+
+  stretchRange.addEventListener('input', () => {
+    if(clipSource) clipSource.playbackRate.value = parseFloat(stretchRange.value);
+  });
+</script>
+
+</body>
+</html>
