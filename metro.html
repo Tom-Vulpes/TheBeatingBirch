@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Bench — Isometric Metronomes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+  :root{
+    --walnut-dark:#241811;
+    --walnut:#5b3a26;
+    --walnut-light:#7a5136;
+    --walnut-face:#6b4630;
+    --parchment:#e9ddc6;
+    --parchment-dim:#c9bb9d;
+    --brass:#c99a4e;
+    --brass-bright:#e2b869;
+    --verdigris:#4c7b6c;
+    --shadow:rgba(0,0,0,.45);
+    --panel:#2e2119;
+    --panel-line: rgba(233,221,198,.14);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 30% -10%, #3a2818 0%, transparent 60%),
+      var(--walnut-dark);
+    color:var(--parchment);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding: 40px 24px 80px;
+  }
+
+  .wrap{ max-width:1180px; margin:0 auto; }
+
+  header{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    gap:24px; flex-wrap:wrap;
+    border-bottom:1px solid var(--panel-line);
+    padding-bottom:22px; margin-bottom:8px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:clamp(28px,4vw,42px);
+    margin:0 0 6px;
+    letter-spacing:.2px;
+    color:var(--parchment);
+  }
+  header p{
+    margin:0; max-width:46ch;
+    color:var(--parchment-dim);
+    font-size:14.5px; line-height:1.55;
+  }
+  .transport{
+    display:flex; gap:10px; align-items:center;
+  }
+
+  button{
+    font-family:'Inter',sans-serif;
+    cursor:pointer;
+    border:1px solid var(--panel-line);
+    background:var(--panel);
+    color:var(--parchment);
+    border-radius:3px;
+    padding:10px 16px;
+    font-size:13.5px;
+    font-weight:500;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  button:hover{ border-color:var(--brass); color:var(--brass-bright); }
+  button:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  button.primary{
+    background:var(--brass); color:var(--walnut-dark); border-color:var(--brass);
+    font-weight:600;
+  }
+  button.primary:hover{ background:var(--brass-bright); color:var(--walnut-dark); }
+  button.ghost{ background:transparent; }
+  button.small{ padding:6px 10px; font-size:12px; }
+
+  /* ---------- STAGE ---------- */
+  .stage{
+    position:relative;
+    height:420px;
+    margin:36px 0 8px;
+    perspective: none;
+    overflow:hidden;
+    border-top:1px solid var(--panel-line);
+    border-bottom:1px solid var(--panel-line);
+    background:
+      linear-gradient(180deg, rgba(233,221,198,.03), transparent 40%);
+  }
+  .iso-world{
+    position:absolute; left:50%; top:60%;
+    transform-style:preserve-3d;
+    transform: rotateX(56deg) rotateZ(45deg);
+  }
+  .bench-top{
+    position:absolute; left:-700px; top:-700px;
+    width:1400px; height:1400px;
+    transform: translateZ(0px);
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 2px, transparent 2px 34px),
+      linear-gradient(120deg, #6b4a30, #543823 60%, #48301f);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.3);
+  }
+
+  .metronome-3d{
+    position:absolute; left:0; top:0;
+    transform-style:preserve-3d;
+  }
+  .body3d{
+    position:absolute; left:0; top:0;
+    transform-style:preserve-3d;
+    transform: translate3d(-32px,-150px,0);
+  }
+  .face{
+    position:absolute;
+    backface-visibility:hidden;
+    background-repeat:no-repeat;
+  }
+  .face.front{
+    left:0; top:0; width:64px; height:150px;
+    transform: translateZ(24px);
+    background: linear-gradient(180deg, var(--walnut-light), var(--walnut) 70%);
+    clip-path: polygon(0% 100%, 100% 100%, 82% 0%, 18% 0%);
+    border-left:1px solid rgba(0,0,0,.25);
+  }
+  .face.back{
+    left:0; top:0; width:64px; height:150px;
+    transform: rotateY(180deg) translateZ(24px);
+    background: linear-gradient(180deg,#42291a, #341f13 70%);
+    clip-path: polygon(0% 100%, 100% 100%, 82% 0%, 18% 0%);
+  }
+  .face.left{
+    left:0; top:0; width:48px; height:150px;
+    transform: rotateY(-90deg) translateZ(0px) translateX(-24px);
+    transform-origin: left center;
+    background: linear-gradient(180deg,#4a2f1e, #3a2415 70%);
+    clip-path: polygon(0% 100%, 100% 100%, 82% 0%, 18% 0%);
+  }
+  .face.right{
+    left:0; top:0; width:48px; height:150px;
+    transform: rotateY(90deg) translateZ(0px) translateX(24px) scaleX(-1);
+    transform-origin: left center;
+    background: linear-gradient(180deg,#6b4630, #543823 70%);
+    clip-path: polygon(0% 100%, 100% 100%, 82% 0%, 18% 0%);
+  }
+  .face.top{
+    left:14px; top:-24px; width:36px; height:48px;
+    transform: rotateX(90deg) translateZ(0px);
+    transform-origin: top center;
+    background: linear-gradient(135deg,#7a5136,#5b3a26);
+    border:1px solid rgba(0,0,0,.3);
+  }
+  .dial{
+    position:absolute; left:8px; top:16px; width:48px; height:96px;
+    transform: translateZ(24.6px);
+    background:
+      repeating-linear-gradient(180deg, rgba(233,221,198,.5) 0 1px, transparent 1px 12px);
+    opacity:.35;
+  }
+  .brand-tick{
+    position:absolute; left:16px; top:110px; width:32px; height:2px;
+    background:var(--brass); opacity:.55;
+    transform: translateZ(24.6px);
+  }
+
+  .pivot{
+    position:absolute; left:32px; top:6px;
+    transform-style:preserve-3d;
+    transform: translateZ(26px);
+  }
+  .pivot-cap{
+    position:absolute; left:-5px; top:-5px; width:10px; height:10px; border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, var(--brass-bright), var(--brass) 60%, #8a672f);
+    box-shadow:0 0 3px rgba(0,0,0,.5);
+  }
+  .arm{
+    position:absolute; left:-2px; top:0; width:4px; height:118px;
+    transform-origin: 50% 0%;
+    background: linear-gradient(90deg,#8a672f,var(--brass-bright) 45%,#8a672f);
+    border-radius:2px;
+    box-shadow:0 0 2px rgba(0,0,0,.4);
+    will-change: transform;
+  }
+  .weight-fixed{
+    position:absolute; left:-8px; top:14px; width:20px; height:14px;
+    background: linear-gradient(180deg,var(--brass-bright),#8a672f);
+    border-radius:2px;
+    box-shadow:0 1px 2px rgba(0,0,0,.5);
+  }
+  .weight-slide{
+    position:absolute; left:-9px; width:22px; height:16px;
+    background: linear-gradient(180deg,var(--brass-bright),#a37c3c);
+    border-radius:2px;
+    box-shadow:0 1px 3px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.15);
+  }
+  .contact{
+    position:absolute; left:8px; top:0; width:8px; height:8px; border-radius:50%;
+    background: radial-gradient(circle, var(--verdigris), #2c4b41);
+    transform: translateZ(2px);
+    opacity:.9;
+  }
+
+  .floor-shadow{
+    position:absolute; left:-30px; top:-2px; width:120px; height:70px;
+    border-radius:50%;
+    background: radial-gradient(ellipse, rgba(0,0,0,.45), transparent 70%);
+    transform: translateZ(-0.5px);
+  }
+
+  .flash-glow{
+    position:absolute; left:-16px; top:-4px; width:96px; height:170px;
+    border-radius:8px;
+    background: radial-gradient(ellipse at 50% 40%, rgba(226,184,105,.5), transparent 65%);
+    opacity:0; pointer-events:none;
+    transform: translateZ(30px);
+    transition: opacity .09s ease-out;
+  }
+
+  .tag3d{
+    position:absolute; left:-10px; top:158px;
+    transform: rotateX(90deg) translateZ(0px);
+    transform-origin: top left;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:9px; letter-spacing:.06em;
+    color: var(--parchment-dim);
+    white-space:nowrap;
+  }
+
+  .empty-stage-msg{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    color:var(--parchment-dim); font-size:14px; text-align:center;
+  }
+
+  /* ---------- CONTROL RACK ---------- */
+  .rack{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px,1fr));
+    gap:14px;
+    margin-top:28px;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    border-radius:4px;
+    padding:16px 18px 18px;
+  }
+  .card-head{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:12px;
+  }
+  .swatch{
+    width:10px; height:10px; border-radius:50%;
+    display:inline-block; margin-right:8px;
+    box-shadow:0 0 0 2px rgba(0,0,0,.3);
+  }
+  .card-title{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px; letter-spacing:.03em;
+    color:var(--parchment-dim);
+    display:flex; align-items:center;
+  }
+  .bpm-readout{
+    font-family:'Fraunces',serif;
+    font-size:34px; font-weight:500;
+    line-height:1;
+    margin: 2px 0 14px;
+    color:var(--brass-bright);
+  }
+  .bpm-readout span{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px; color:var(--parchment-dim); margin-left:6px;
+    font-weight:400;
+  }
+  label.field{
+    display:block; font-size:11.5px; color:var(--parchment-dim);
+    margin:12px 0 6px; font-family:'IBM Plex Mono',monospace; letter-spacing:.02em;
+  }
+  input[type=range]{
+    width:100%; accent-color: var(--brass);
+    background:transparent;
+  }
+  select{
+    width:100%;
+    background:var(--walnut-dark);
+    color:var(--parchment);
+    border:1px solid var(--panel-line);
+    border-radius:3px;
+    padding:8px 10px;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+  }
+  .card-actions{
+    display:flex; gap:8px; margin-top:16px;
+  }
+  .card-actions button{ flex:1; }
+
+  .add-card{
+    border:1px dashed var(--panel-line);
+    background:transparent;
+    border-radius:4px;
+    display:flex; align-items:center; justify-content:center;
+    min-height:180px;
+    color:var(--parchment-dim);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .add-card:hover{ border-color:var(--brass); color:var(--brass-bright); }
+
+  footer{
+    margin-top:34px;
+    color:var(--parchment-dim);
+    font-size:12.5px;
+    border-top:1px solid var(--panel-line);
+    padding-top:16px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .arm{ transition:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>The Bench</h1>
+      <p>A row of mechanical metronomes. Slide each weight up the arm to lengthen the swing and slow the beat, or down toward the pivot to speed it up — same physics as the wind-up kind on the shelf.</p>
+    </div>
+    <div class="transport">
+      <button class="ghost small" id="muteAllBtn">Mute all</button>
+      <button class="primary" id="transportBtn">Start bench</button>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <div class="iso-world" id="isoWorld">
+      <div class="bench-top"></div>
+    </div>
+  </div>
+
+  <div class="rack" id="rack">
+    <div class="add-card" id="addCard">+ Add metronome</div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const CASE_H = 150, ARM_LEN = 118;
+  const SPACING = 108;
+  const colors = ['#c99a4e','#4c7b6c','#a45c3d','#7a86c9','#c9636b','#8fae5b'];
+  const soundOptions = [
+    {v:'click', l:'Click — dry tick'},
+    {v:'wood', l:'Wood block'},
+    {v:'tone', l:'Tone — adjustable'},
+    {v:'bell', l:'Bell tone'}
+  ];
+  const waveOptions = ['sine','triangle','square','sawtooth'];
+
+  let audioCtx = null, masterGain = null;
+  function ensureAudio(){
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.85;
+      masterGain.connect(audioCtx.destination);
+    }
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function playSound(type, pan, gainMult, opts){
+    if(!audioCtx) return;
+    opts = opts || {};
+    const t = audioCtx.currentTime;
+    const panner = audioCtx.createStereoPanner();
+    panner.pan.value = Math.max(-1, Math.min(1, pan));
+    panner.connect(masterGain);
+
+    if(type === 'click'){
+      const size = Math.floor(audioCtx.sampleRate * 0.03);
+      const buffer = audioCtx.createBuffer(1, size, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for(let i=0;i<size;i++){ data[i] = (Math.random()*2-1) * Math.pow(1 - i/size, 3); }
+      const src = audioCtx.createBufferSource(); src.buffer = buffer;
+      const bp = audioCtx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=3200; bp.Q.value=1.1;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.9*gainMult, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t+0.03);
+      src.connect(bp); bp.connect(g); g.connect(panner);
+      src.start(t); src.stop(t+0.03);
+    } else if(type === 'wood'){
+      const osc = audioCtx.createOscillator(); osc.type='triangle';
+      osc.frequency.setValueAtTime(950, t);
+      osc.frequency.exponentialRampToValueAtTime(280, t+0.05);
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.55*gainMult, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t+0.06);
+      osc.connect(g); g.connect(panner);
+      osc.start(t); osc.stop(t+0.07);
+    } else if(type === 'tone'){
+      const freq = opts.freq || 1500;
+      const wave = opts.wave || 'sine';
+      // square/sawtooth read louder and buzzier than sine/triangle at the same
+      // gain, so trim their level and decay a touch to keep things comfortable.
+      const buzzy = (wave === 'square' || wave === 'sawtooth');
+      const peak = (buzzy ? 0.22 : 0.4) * gainMult;
+      const dur = buzzy ? 0.05 : 0.09;
+      const osc = audioCtx.createOscillator();
+      osc.type = wave;
+      osc.frequency.value = freq;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(peak, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+      osc.connect(g); g.connect(panner);
+      osc.start(t); osc.stop(t+dur+0.01);
+    } else if(type === 'bell'){
+      const osc = audioCtx.createOscillator(); osc.type='sine'; osc.frequency.value=1800;
+      const osc2 = audioCtx.createOscillator(); osc2.type='sine'; osc2.frequency.value=2680;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.28*gainMult, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t+0.4);
+      osc.connect(g); osc2.connect(g); g.connect(panner);
+      osc.start(t); osc2.start(t);
+      osc.stop(t+0.4); osc2.stop(t+0.4);
+    }
+  }
+
+  function bpmFromWeight(pos){ // pos: 15 (near pivot, fast) .. 100 (far, slow)
+    return Math.round(Math.max(40, Math.min(208, 3300 / pos)));
+  }
+
+  const isoWorld = document.getElementById('isoWorld');
+  const rack = document.getElementById('rack');
+  const stage = document.getElementById('stage');
+
+  let metronomes = [];
+  let nextId = 1;
+  let benchRunning = false;
+  let allMuted = false;
+  const GLOBAL_T0 = performance.now();
+
+  function layout(){
+    const n = metronomes.length;
+    metronomes.forEach((m, i)=>{
+      const x = (i - (n-1)/2) * SPACING;
+      m.el3d.style.transform = `translate3d(${x}px,0,0)`;
+    });
+  }
+
+  function buildMetronomeDOM(m){
+    const el = document.createElement('div');
+    el.className = 'metronome-3d';
+    el.innerHTML = `
+      <div class="floor-shadow"></div>
+      <div class="body3d">
+        <div class="flash-glow"></div>
+        <div class="face left"></div>
+        <div class="face right"></div>
+        <div class="face back"></div>
+        <div class="face front"></div>
+        <div class="face top"></div>
+        <div class="dial"></div>
+        <div class="brand-tick"></div>
+        <div class="pivot">
+          <div class="pivot-cap"></div>
+          <div class="arm">
+            <div class="weight-fixed"></div>
+            <div class="weight-slide"></div>
+          </div>
+        </div>
+        <div class="tag3d">${m.label}</div>
+      </div>
+    `;
+    isoWorld.appendChild(el);
+    m.el3d = el;
+    m.armEl = el.querySelector('.arm');
+    m.weightEl = el.querySelector('.weight-slide');
+    m.flashEl = el.querySelector('.flash-glow');
+    m.frontEl = el.querySelector('.face.front');
+  }
+
+  function buildCard(m){
+    const card = document.createElement('div');
+    card.className = 'card';
+    const opts = soundOptions.map(o=>`<option value="${o.v}" ${o.v===m.sound?'selected':''}>${o.l}</option>`).join('');
+    const waveOpts = waveOptions.map(w=>`<option value="${w}" ${w===m.wave?'selected':''}>${w[0].toUpperCase()+w.slice(1)}</option>`).join('');
+    card.innerHTML = `
+      <div class="card-head">
+        <span class="card-title"><span class="swatch" style="background:${m.color}"></span>${m.label}</span>
+        <button class="ghost small remove-btn" title="Remove">Remove</button>
+      </div>
+      <div class="bpm-readout">${m.bpm}<span>BPM</span></div>
+      <label class="field">Weight position — pivot &rarr; tip</label>
+      <input type="range" min="15" max="100" value="${m.weightPos}" class="weight-slider">
+      <label class="field">Tick sound</label>
+      <select class="sound-select">${opts}</select>
+      <div class="tone-controls" style="display:${m.sound==='tone' ? 'block':'none'}">
+        <label class="field">Frequency — <span class="freq-val">${m.freq}</span> Hz</label>
+        <input type="range" min="150" max="4000" step="10" value="${m.freq}" class="freq-slider">
+        <label class="field">Waveform</label>
+        <select class="wave-select">${waveOpts}</select>
+      </div>
+      <div class="card-actions">
+        <button class="play-btn primary">${m.running ? 'Pause' : 'Play'}</button>
+        <button class="mute-btn ghost">${m.muted ? 'Unmute' : 'Mute'}</button>
+      </div>
+    `;
+    rack.insertBefore(card, document.getElementById('addCard'));
+    m.cardEl = card;
+    m.bpmEl = card.querySelector('.bpm-readout');
+    const toneControls = card.querySelector('.tone-controls');
+    const freqVal = card.querySelector('.freq-val');
+
+    card.querySelector('.weight-slider').addEventListener('input', e=>{
+      m.weightPos = parseInt(e.target.value,10);
+      m.bpm = bpmFromWeight(m.weightPos);
+      m.bpmEl.innerHTML = `${m.bpm}<span>BPM</span>`;
+      m.weightEl.style.top = (10 + (m.weightPos/100)*90) + 'px';
+    });
+    card.querySelector('.sound-select').addEventListener('change', e=>{
+      m.sound = e.target.value;
+      toneControls.style.display = m.sound === 'tone' ? 'block' : 'none';
+    });
+    card.querySelector('.freq-slider').addEventListener('input', e=>{
+      m.freq = parseInt(e.target.value,10);
+      freqVal.textContent = m.freq;
+    });
+    card.querySelector('.wave-select').addEventListener('change', e=>{ m.wave = e.target.value; });
+    card.querySelector('.play-btn').addEventListener('click', ()=>{
+      ensureAudio();
+      m.running = !m.running;
+      if(m.running){
+        const elapsed = (performance.now()-GLOBAL_T0)/1000;
+        m.lastBeat = Math.floor(elapsed / (60/m.bpm));
+      }
+      card.querySelector('.play-btn').textContent = m.running ? 'Pause' : 'Play';
+    });
+    card.querySelector('.mute-btn').addEventListener('click', ()=>{
+      m.muted = !m.muted;
+      card.querySelector('.mute-btn').textContent = m.muted ? 'Unmute' : 'Mute';
+    });
+    card.querySelector('.remove-btn').addEventListener('click', ()=> removeMetronome(m.id));
+  }
+
+  function addMetronome(){
+    const id = nextId++;
+    const color = colors[(id-1) % colors.length];
+    const m = {
+      id, label:`No. ${id}`, color,
+      weightPos: 45, sound:'click',
+      freq: 1500, wave: 'sine',
+      running:false, muted:false,
+      lastBeat:0
+    };
+    m.bpm = bpmFromWeight(m.weightPos);
+    metronomes.push(m);
+    buildMetronomeDOM(m);
+    buildCard(m);
+    m.weightEl.style.top = (10 + (m.weightPos/100)*90) + 'px';
+    layout();
+  }
+
+  function removeMetronome(id){
+    const m = metronomes.find(x=>x.id===id);
+    if(!m) return;
+    m.el3d.remove();
+    m.cardEl.remove();
+    metronomes = metronomes.filter(x=>x.id!==id);
+    layout();
+  }
+
+  document.getElementById('addCard').addEventListener('click', addMetronome);
+
+  document.getElementById('transportBtn').addEventListener('click', ()=>{
+    ensureAudio();
+    benchRunning = !benchRunning;
+    const btn = document.getElementById('transportBtn');
+    btn.textContent = benchRunning ? 'Stop bench' : 'Start bench';
+    const elapsed = (performance.now()-GLOBAL_T0)/1000;
+    metronomes.forEach(m=>{
+      m.running = benchRunning;
+      if(benchRunning) m.lastBeat = Math.floor(elapsed/(60/m.bpm));
+      m.cardEl.querySelector('.play-btn').textContent = m.running ? 'Pause' : 'Play';
+    });
+  });
+
+  document.getElementById('muteAllBtn').addEventListener('click', ()=>{
+    allMuted = !allMuted;
+    document.getElementById('muteAllBtn').textContent = allMuted ? 'Unmute all' : 'Mute all';
+    metronomes.forEach(m=>{
+      m.muted = allMuted;
+      m.cardEl.querySelector('.mute-btn').textContent = m.muted ? 'Unmute' : 'Mute';
+    });
+  });
+
+  function frame(){
+    const now = performance.now();
+    const elapsed = (now - GLOBAL_T0)/1000;
+    metronomes.forEach(m=>{
+      const beatInterval = 60 / m.bpm;
+      const fullPeriod = beatInterval * 2;
+      const phase = (elapsed % fullPeriod) / fullPeriod;
+      const maxAngle = 17;
+      const angle = maxAngle * Math.sin(phase * 2 * Math.PI);
+
+      if(m.running){
+        m.armEl.style.transform = `rotateZ(${angle}deg)`;
+        const beatCount = Math.floor(elapsed / beatInterval);
+        if(beatCount !== m.lastBeat){
+          m.lastBeat = beatCount;
+          const dir = Math.cos(phase*2*Math.PI) >= 0 ? -0.22 : 0.22;
+          if(!m.muted) playSound(m.sound, dir, 1, {freq:m.freq, wave:m.wave});
+          m.flashEl.style.opacity = '1';
+          setTimeout(()=>{ m.flashEl.style.opacity = '0'; }, 90);
+        }
+      }
+    });
+    requestAnimationFrame(frame);
+  }
+
+  // seed the bench
+  addMetronome();
+  addMetronome();
+  addMetronome();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
