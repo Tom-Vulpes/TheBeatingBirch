@@ -300,6 +300,20 @@
   }
   .card-actions button{ flex:1; }
 
+  .pitch-row{
+    display:flex; gap:6px; margin:12px 0 2px;
+  }
+  .pitch-btn{
+    flex:1; padding:6px 8px; font-size:12px;
+    border:1px solid var(--panel-line);
+    background:transparent; color:var(--parchment-dim);
+    border-radius:3px;
+  }
+  .pitch-btn.active{
+    border-color:var(--brass); color:var(--brass-bright);
+    background: rgba(201,154,78,.12);
+  }
+
   .add-card{
     border:1px dashed var(--panel-line);
     background:transparent;
@@ -364,6 +378,15 @@
     {v:'bell', l:'Bell tone'}
   ];
   const waveOptions = ['sine','triangle','square','sawtooth'];
+  const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const NOTES = [];
+  for(let oct=2; oct<=6; oct++){
+    NOTE_NAMES.forEach((name,i)=>{
+      const midi = (oct+1)*12 + i;
+      const freq = 440 * Math.pow(2, (midi-69)/12);
+      NOTES.push({label:name+oct, freq: Math.round(freq*100)/100});
+    });
+  }
 
   let audioCtx = null, masterGain = null;
   function ensureAudio(){
@@ -376,61 +399,60 @@
     if(audioCtx.state === 'suspended') audioCtx.resume();
   }
 
-  function playSound(type, pan, gainMult, opts){
+  // Each running metronome owns a persistent "voice": an oscillator (or looping
+  // noise) that plays continuously at silence, whose gain is swelled up and back
+  // down each time the arm sweeps past centre — an attack/decay tied to the
+  // pendulum's position rather than a one-shot sample fired at the crossing.
+  function buildVoice(m){
+    teardownVoice(m);
     if(!audioCtx) return;
-    opts = opts || {};
-    const t = audioCtx.currentTime;
     const panner = audioCtx.createStereoPanner();
-    panner.pan.value = Math.max(-1, Math.min(1, pan));
-    panner.connect(masterGain);
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.value = 0;
+    gainNode.connect(panner); panner.connect(masterGain);
 
-    if(type === 'click'){
-      const size = Math.floor(audioCtx.sampleRate * 0.03);
+    let osc=null, osc2=null, noiseSrc=null, filter=null, peak=0.5;
+
+    if(m.sound === 'click'){
+      const size = audioCtx.sampleRate * 2;
       const buffer = audioCtx.createBuffer(1, size, audioCtx.sampleRate);
       const data = buffer.getChannelData(0);
-      for(let i=0;i<size;i++){ data[i] = (Math.random()*2-1) * Math.pow(1 - i/size, 3); }
-      const src = audioCtx.createBufferSource(); src.buffer = buffer;
-      const bp = audioCtx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=3200; bp.Q.value=1.1;
-      const g = audioCtx.createGain();
-      g.gain.setValueAtTime(0.9*gainMult, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t+0.03);
-      src.connect(bp); bp.connect(g); g.connect(panner);
-      src.start(t); src.stop(t+0.03);
-    } else if(type === 'wood'){
-      const osc = audioCtx.createOscillator(); osc.type='triangle';
-      osc.frequency.setValueAtTime(950, t);
-      osc.frequency.exponentialRampToValueAtTime(280, t+0.05);
-      const g = audioCtx.createGain();
-      g.gain.setValueAtTime(0.55*gainMult, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t+0.06);
-      osc.connect(g); g.connect(panner);
-      osc.start(t); osc.stop(t+0.07);
-    } else if(type === 'tone'){
-      const freq = opts.freq || 1500;
-      const wave = opts.wave || 'sine';
-      // square/sawtooth read louder and buzzier than sine/triangle at the same
-      // gain, so trim their level and decay a touch to keep things comfortable.
-      const buzzy = (wave === 'square' || wave === 'sawtooth');
-      const peak = (buzzy ? 0.22 : 0.4) * gainMult;
-      const dur = buzzy ? 0.05 : 0.09;
-      const osc = audioCtx.createOscillator();
-      osc.type = wave;
-      osc.frequency.value = freq;
-      const g = audioCtx.createGain();
-      g.gain.setValueAtTime(peak, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t+dur);
-      osc.connect(g); g.connect(panner);
-      osc.start(t); osc.stop(t+dur+0.01);
-    } else if(type === 'bell'){
-      const osc = audioCtx.createOscillator(); osc.type='sine'; osc.frequency.value=1800;
-      const osc2 = audioCtx.createOscillator(); osc2.type='sine'; osc2.frequency.value=2680;
-      const g = audioCtx.createGain();
-      g.gain.setValueAtTime(0.28*gainMult, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t+0.4);
-      osc.connect(g); osc2.connect(g); g.connect(panner);
-      osc.start(t); osc2.start(t);
-      osc.stop(t+0.4); osc2.stop(t+0.4);
+      for(let i=0;i<size;i++) data[i] = Math.random()*2-1;
+      noiseSrc = audioCtx.createBufferSource();
+      noiseSrc.buffer = buffer; noiseSrc.loop = true;
+      filter = audioCtx.createBiquadFilter(); filter.type='bandpass'; filter.frequency.value=3200; filter.Q.value=1.1;
+      noiseSrc.connect(filter); filter.connect(gainNode);
+      noiseSrc.start();
+      peak = 0.6;
+    } else if(m.sound === 'wood'){
+      osc = audioCtx.createOscillator(); osc.type='triangle'; osc.frequency.value = 520;
+      osc.connect(gainNode); osc.start();
+      peak = 0.55;
+    } else if(m.sound === 'tone'){
+      osc = audioCtx.createOscillator();
+      osc.type = m.wave; osc.frequency.value = m.freq;
+      osc.connect(gainNode); osc.start();
+      const buzzy = (m.wave === 'square' || m.wave === 'sawtooth');
+      peak = buzzy ? 0.3 : 0.55;
+    } else if(m.sound === 'bell'){
+      osc = audioCtx.createOscillator(); osc.type='sine'; osc.frequency.value=1800;
+      osc2 = audioCtx.createOscillator(); osc2.type='sine'; osc2.frequency.value=2680;
+      osc.connect(gainNode); osc2.connect(gainNode);
+      osc.start(); osc2.start();
+      peak = 0.35;
     }
+
+    m.voice = { gainNode, panner, osc, osc2, noiseSrc, filter, peak };
+  }
+
+  function teardownVoice(m){
+    if(!m.voice) return;
+    const v = m.voice;
+    try{ v.osc && v.osc.stop(); }catch(e){}
+    try{ v.osc2 && v.osc2.stop(); }catch(e){}
+    try{ v.noiseSrc && v.noiseSrc.stop(); }catch(e){}
+    try{ v.gainNode.disconnect(); v.panner.disconnect(); v.filter && v.filter.disconnect(); }catch(e){}
+    m.voice = null;
   }
 
   function bpmFromWeight(pos){ // pos: 15 (near pivot, fast) .. 100 (far, slow)
@@ -492,6 +514,7 @@
     card.className = 'card';
     const opts = soundOptions.map(o=>`<option value="${o.v}" ${o.v===m.sound?'selected':''}>${o.l}</option>`).join('');
     const waveOpts = waveOptions.map(w=>`<option value="${w}" ${w===m.wave?'selected':''}>${w[0].toUpperCase()+w.slice(1)}</option>`).join('');
+    const noteOpts = NOTES.map(n=>`<option value="${n.label}" ${n.label===m.note?'selected':''}>${n.label} — ${n.freq} Hz</option>`).join('');
     card.innerHTML = `
       <div class="card-head">
         <span class="card-title"><span class="swatch" style="background:${m.color}"></span>${m.label}</span>
@@ -503,8 +526,18 @@
       <label class="field">Tick sound</label>
       <select class="sound-select">${opts}</select>
       <div class="tone-controls" style="display:${m.sound==='tone' ? 'block':'none'}">
-        <label class="field">Frequency — <span class="freq-val">${m.freq}</span> Hz</label>
-        <input type="range" min="150" max="4000" step="10" value="${m.freq}" class="freq-slider">
+        <div class="pitch-row">
+          <button type="button" class="pitch-btn ${m.pitchMode==='freq'?'active':''}" data-mode="freq">Hz</button>
+          <button type="button" class="pitch-btn ${m.pitchMode==='note'?'active':''}" data-mode="note">Note</button>
+        </div>
+        <div class="freq-block" style="display:${m.pitchMode==='freq'?'block':'none'}">
+          <label class="field">Frequency — <span class="freq-val">${m.freq}</span> Hz</label>
+          <input type="range" min="150" max="4000" step="10" value="${m.freq}" class="freq-slider">
+        </div>
+        <div class="note-block" style="display:${m.pitchMode==='note'?'block':'none'}">
+          <label class="field">Note</label>
+          <select class="note-select">${noteOpts}</select>
+        </div>
         <label class="field">Waveform</label>
         <select class="wave-select">${waveOpts}</select>
       </div>
@@ -517,7 +550,16 @@
     m.cardEl = card;
     m.bpmEl = card.querySelector('.bpm-readout');
     const toneControls = card.querySelector('.tone-controls');
+    const freqBlock = card.querySelector('.freq-block');
+    const noteBlock = card.querySelector('.note-block');
     const freqVal = card.querySelector('.freq-val');
+
+    function liveUpdateTone(){
+      if(m.voice && m.sound === 'tone' && m.voice.osc){
+        m.voice.osc.type = m.wave;
+        m.voice.osc.frequency.setValueAtTime(m.freq, audioCtx.currentTime);
+      }
+    }
 
     card.querySelector('.weight-slider').addEventListener('input', e=>{
       m.weightPos = parseInt(e.target.value,10);
@@ -528,19 +570,38 @@
     card.querySelector('.sound-select').addEventListener('change', e=>{
       m.sound = e.target.value;
       toneControls.style.display = m.sound === 'tone' ? 'block' : 'none';
+      if(m.running) buildVoice(m);
+    });
+    card.querySelectorAll('.pitch-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        m.pitchMode = btn.dataset.mode;
+        card.querySelectorAll('.pitch-btn').forEach(b=>b.classList.toggle('active', b===btn));
+        freqBlock.style.display = m.pitchMode === 'freq' ? 'block' : 'none';
+        noteBlock.style.display = m.pitchMode === 'note' ? 'block' : 'none';
+        if(m.pitchMode === 'note'){
+          m.freq = NOTES.find(n=>n.label===m.note).freq;
+        }
+        liveUpdateTone();
+      });
     });
     card.querySelector('.freq-slider').addEventListener('input', e=>{
       m.freq = parseInt(e.target.value,10);
       freqVal.textContent = m.freq;
+      liveUpdateTone();
     });
-    card.querySelector('.wave-select').addEventListener('change', e=>{ m.wave = e.target.value; });
+    card.querySelector('.note-select').addEventListener('change', e=>{
+      const n = NOTES.find(x=>x.label===e.target.value);
+      m.note = n.label; m.freq = n.freq;
+      liveUpdateTone();
+    });
+    card.querySelector('.wave-select').addEventListener('change', e=>{
+      m.wave = e.target.value;
+      liveUpdateTone();
+    });
     card.querySelector('.play-btn').addEventListener('click', ()=>{
       ensureAudio();
       m.running = !m.running;
-      if(m.running){
-        const elapsed = (performance.now()-GLOBAL_T0)/1000;
-        m.lastBeat = Math.floor(elapsed / (60/m.bpm));
-      }
+      if(!m.running) teardownVoice(m);
       card.querySelector('.play-btn').textContent = m.running ? 'Pause' : 'Play';
     });
     card.querySelector('.mute-btn').addEventListener('click', ()=>{
@@ -555,10 +616,11 @@
     const color = colors[(id-1) % colors.length];
     const m = {
       id, label:`No. ${id}`, color,
-      weightPos: 45, sound:'click',
+      weightPos: 45, sound:'tone',
       freq: 1500, wave: 'sine',
+      pitchMode: 'freq', note: 'A5',
       running:false, muted:false,
-      lastBeat:0
+      voice:null
     };
     m.bpm = bpmFromWeight(m.weightPos);
     metronomes.push(m);
@@ -571,6 +633,7 @@
   function removeMetronome(id){
     const m = metronomes.find(x=>x.id===id);
     if(!m) return;
+    teardownVoice(m);
     m.el3d.remove();
     m.cardEl.remove();
     metronomes = metronomes.filter(x=>x.id!==id);
@@ -584,10 +647,9 @@
     benchRunning = !benchRunning;
     const btn = document.getElementById('transportBtn');
     btn.textContent = benchRunning ? 'Stop bench' : 'Start bench';
-    const elapsed = (performance.now()-GLOBAL_T0)/1000;
     metronomes.forEach(m=>{
       m.running = benchRunning;
-      if(benchRunning) m.lastBeat = Math.floor(elapsed/(60/m.bpm));
+      if(!m.running) teardownVoice(m);
       m.cardEl.querySelector('.play-btn').textContent = m.running ? 'Pause' : 'Play';
     });
   });
@@ -613,14 +675,28 @@
 
       if(m.running){
         m.armEl.style.transform = `rotateZ(${angle}deg)`;
-        const beatCount = Math.floor(elapsed / beatInterval);
-        if(beatCount !== m.lastBeat){
-          m.lastBeat = beatCount;
-          const dir = Math.cos(phase*2*Math.PI) >= 0 ? -0.22 : 0.22;
-          if(!m.muted) playSound(m.sound, dir, 1, {freq:m.freq, wave:m.wave});
-          m.flashEl.style.opacity = '1';
-          setTimeout(()=>{ m.flashEl.style.opacity = '0'; }, 90);
+
+        // Swell shaped envelope: peaks at centre (angle 0), silent past the
+        // window edge — this is the attack/decay as the arm sweeps through.
+        const windowDeg = maxAngle * 0.62;
+        let shape = 0;
+        if(Math.abs(angle) < windowDeg){
+          const c = Math.cos((angle / windowDeg) * (Math.PI/2));
+          shape = c*c;
         }
+        m.flashEl.style.opacity = String(shape * 0.9);
+
+        if(audioCtx){
+          if(!m.voice) buildVoice(m);
+          if(m.voice){
+            const target = m.muted ? 0 : shape * m.voice.peak;
+            m.voice.gainNode.gain.setTargetAtTime(target, audioCtx.currentTime, 0.012);
+            m.voice.panner.pan.value = Math.max(-1, Math.min(1, (angle/maxAngle) * 0.35));
+          }
+        }
+      } else {
+        if(m.voice) teardownVoice(m);
+        m.flashEl.style.opacity = '0';
       }
     });
     requestAnimationFrame(frame);
